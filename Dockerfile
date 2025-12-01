@@ -25,8 +25,11 @@ COPY . .
 ## Run setup.py (for editable install if using setup.py)
 RUN pip install --no-cache-dir -e .
 
+## Install production WSGI server
+RUN pip install --no-cache-dir gunicorn
+
 ## Expose Flask port
 EXPOSE 5000
 
-## Run the app (ensure this is the correct file with app.run)
-CMD ["python", "app.py"]
+## Run the app with gunicorn (production WSGI server)
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "app:app"]
