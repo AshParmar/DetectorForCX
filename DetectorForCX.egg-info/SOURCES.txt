@@ -1,0 +1,8 @@
+setup.py
+DetectorForCX.egg-info/PKG-INFO
+DetectorForCX.egg-info/SOURCES.txt
+DetectorForCX.egg-info/dependency_links.txt
+DetectorForCX.egg-info/requires.txt
+DetectorForCX.egg-info/top_level.txt
+app/__init__.py
+app/utils/__init__.py
