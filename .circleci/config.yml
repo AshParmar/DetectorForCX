@@ -34,8 +34,8 @@ jobs:
       - run:
           name: Build and Push Image
           command: |
-              docker build -t us-central1-docker.pkg.dev/$GOOGLE_PROJECT_ID/celebrity-detector-repo/celebrity-detector-app:latest .
-              docker push us-central1-docker.pkg.dev/$GOOGLE_PROJECT_ID/celebrity-detector-repo/celebrity-detector-app:latest
+              docker build -t us-central1-docker.pkg.dev/$GOOGLE_PROJECT_ID/celebrity-detector/celebrity-detector-app:latest .
+              docker push us-central1-docker.pkg.dev/$GOOGLE_PROJECT_ID/celebrity-detector/celebrity-detector-app:latest
 
   deploy_to_gke:
     machine:
