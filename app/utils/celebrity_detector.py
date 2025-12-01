@@ -1,18 +1,11 @@
 import os 
 import base64
 import requests
-import logging
-
-logger = logging.getLogger(__name__)
 
 class CelebrityDetector:
 
     def __init__(self):
         self.api_key=os.getenv("GROQ_API_KEY")
-        if not self.api_key:
-            logger.error("GROQ_API_KEY environment variable is not set!")
-        else:
-            logger.info(f"GROQ_API_KEY loaded: {self.api_key[:10]}...")
         self.api_url="https://api.groq.com/openai/v1/chat/completions"
         self.model ="meta-llama/llama-4-maverick-17b-128e-instruct"
     #identify celebrity in the image
@@ -59,24 +52,14 @@ If unknown, return "Unknown".
 
     
         
-        try:
-            response= requests.post(self.api_url, headers=headers, json=prompt)
-            logger.info(f"Groq API response status: {response.status_code}")
+        response= requests.post(self.api_url, headers=headers, json=prompt)
+        if response.status_code == 200:
+            result=response.json()['choices'][0]['message']['content']
             
-            if response.status_code == 200:
-                result=response.json()['choices'][0]['message']['content']
-                logger.info(f"Celebrity detected: {result[:100]}...")
-                
-                name=self.extract_name(result)
-                logger.info(f"Extracted name: {name}")
+            name=self.extract_name(result)
 
-                return result, name
-            else:
-                logger.error(f"Groq API error: {response.status_code} - {response.text}")
-                return f"API Error: {response.status_code}", ""
-        except Exception as e:
-            logger.error(f"Exception in celebrity detection: {str(e)}")
-            return f"Error: {str(e)}", ""
+            return result, name
+        return "Unknown", ""
     def extract_name(self, content):
         for line in content.splitlines():
             if line.startswith("- **Full Name**:"):
