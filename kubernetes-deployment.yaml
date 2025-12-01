@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: celebrity-detector-app
-        image: us-central1-docker.pkg.dev/gen-lang-client-0729539659/llmops-repo/llmops-app:latest
+        image: us-central1-docker.pkg.dev/ozon-26aad/celebrity-detector/celebrity-detector-app:latest
         ports:
         - containerPort: 5000
         env:

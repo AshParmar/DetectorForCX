@@ -1,4 +1,7 @@
 cx/
 .env
 DetectorForCX.egg-info/
+gcp-key.json
+__pycache__/
+instance/
 
