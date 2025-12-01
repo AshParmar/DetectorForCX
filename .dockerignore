@@ -1,0 +1,16 @@
+.env
+.git
+.gitignore
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+cx/
+*.egg-info/
+dist/
+build/
+*.log
+.vscode/
+.idea/
+README.md
