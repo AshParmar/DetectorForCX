@@ -20,39 +20,37 @@ jobs:
       - run:
           name: Authenticate with google cloud
           command: |
-              echo "$GCLOUD_SERVICE_KEY" | tr -d '\n' | base64 -d > gcp-key.json
+              echo "$GCLOUD_SERVICE_KEY" | base64 --decode > gcp-key.json
               gcloud auth activate-service-account --key-file=gcp-key.json
-              gcloud config set project $GOOGLE_PROJECT_ID
-              gcloud auth configure-docker us-central1-docker.pkg.dev
+              gcloud auth configure-docker us-central1-docker.pkg.dev || gcloud auth configure-docker
 
       - run:
           name: Build and Push Image
           command: |
-              docker build -t us-central1-docker.pkg.dev/$GOOGLE_PROJECT_ID/celebrity-detector-repo/celebrity-detector-app:latest .
-              docker push us-central1-docker.pkg.dev/$GOOGLE_PROJECT_ID/celebrity-detector-repo/celebrity-detector-app:latest
+              docker build -t us-central1-docker.pkg.dev/$GOOGLE_PROJECT_ID/celebrity-detector/celebrity-detector-app:latest .
+              docker push us-central1-docker.pkg.dev/$GOOGLE_PROJECT_ID/celebrity-detector/celebrity-detector-app:latest
 
   deploy_to_gke:
     executor: docker-executor
     steps:
       - checkout
+      - setup_remote_docker
       - run:
           name: Authenticate with google cloud
           command: |
-              echo "$GCLOUD_SERVICE_KEY" | tr -d '\n' | base64 -d > gcp-key.json
+              echo "$GCLOUD_SERVICE_KEY" | base64 --decode > gcp-key.json
               gcloud auth activate-service-account --key-file=gcp-key.json
-              gcloud config set project $GOOGLE_PROJECT_ID
+              gcloud auth configure-docker us-central1-docker.pkg.dev || gcloud auth configure-docker
       
       - run:
           name: Configure GKE
           command: |
-              gcloud container clusters get-credentials $GKE_CLUSTER --zone $GOOGLE_COMPUTE_ZONE --project $GOOGLE_PROJECT_ID
-              
+              gcloud container clusters get-credentials $GKE_CLUSTER --region $GOOGLE_COMPUTE_REGION --project $GOOGLE_PROJECT_ID
       - run:
           name: Deploy to GKE
           command: |
-              kubectl create secret generic celebrity-detector-secrets --from-literal=GROQ_API_KEY=$GROQ_API_KEY --dry-run=client -o yaml | kubectl apply -f -
-              kubectl apply -f kubernetes-deployment.yaml
-              kubectl rollout restart deployment celebrity-detector-app
+              kubectl apply -f kubernetes-deployment.yaml --validate=false
+              kubectl rollout restart deployment llmops-app
 
 workflows:
   version: 2
