@@ -13,44 +13,59 @@ jobs:
       - checkout
 
   build_docker_image:
-    executor: docker-executor
+    machine:
+      image: ubuntu-2204:2023.10.1
     steps:
       - checkout
-      - setup_remote_docker
+      - run:
+          name: Install gcloud CLI
+          command: |
+              echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+              curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+              sudo apt-get update && sudo apt-get install -y google-cloud-cli
       - run:
           name: Authenticate with google cloud
           command: |
-              echo "$GCLOUD_SERVICE_KEY" | base64 --decode > gcp-key.json
+              echo "$GCLOUD_SERVICE_KEY" | tr -d '\n' | base64 -d > gcp-key.json
               gcloud auth activate-service-account --key-file=gcp-key.json
-              gcloud auth configure-docker us-central1-docker.pkg.dev || gcloud auth configure-docker
+              gcloud config set project $GOOGLE_PROJECT_ID
+              gcloud auth configure-docker us-central1-docker.pkg.dev
 
       - run:
           name: Build and Push Image
           command: |
-              docker build -t us-central1-docker.pkg.dev/$GOOGLE_PROJECT_ID/celebrity-detector/celebrity-detector-app:latest .
-              docker push us-central1-docker.pkg.dev/$GOOGLE_PROJECT_ID/celebrity-detector/celebrity-detector-app:latest
+              docker build -t us-central1-docker.pkg.dev/$GOOGLE_PROJECT_ID/celebrity-detector-repo/celebrity-detector-app:latest .
+              docker push us-central1-docker.pkg.dev/$GOOGLE_PROJECT_ID/celebrity-detector-repo/celebrity-detector-app:latest
 
   deploy_to_gke:
-    executor: docker-executor
+    machine:
+      image: ubuntu-2204:2023.10.1
     steps:
       - checkout
-      - setup_remote_docker
       - run:
-          name: Authenticate with google cloud
+          name: Install gcloud CLI and kubectl
           command: |
-              echo "$GCLOUD_SERVICE_KEY" | base64 --decode > gcp-key.json
+              echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+              curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+              sudo apt-get update && sudo apt-get install -y google-cloud-cli kubectl
+      - run:
+          name: Authenticate with Google Cloud
+          command: |
+              echo "$GCLOUD_SERVICE_KEY" | tr -d '\n' | base64 -d > gcp-key.json
               gcloud auth activate-service-account --key-file=gcp-key.json
-              gcloud auth configure-docker us-central1-docker.pkg.dev || gcloud auth configure-docker
+              gcloud config set project $GOOGLE_PROJECT_ID
       
       - run:
           name: Configure GKE
           command: |
-              gcloud container clusters get-credentials $GKE_CLUSTER --region $GOOGLE_COMPUTE_REGION --project $GOOGLE_PROJECT_ID
+              gcloud container clusters get-credentials $GKE_CLUSTER --zone $GOOGLE_COMPUTE_ZONE --project $GOOGLE_PROJECT_ID
+              
       - run:
           name: Deploy to GKE
           command: |
-              kubectl apply -f kubernetes-deployment.yaml --validate=false
-              kubectl rollout restart deployment llmops-app
+              kubectl create secret generic celebrity-detector-secrets --from-literal=GROQ_API_KEY=$GROQ_API_KEY --dry-run=client -o yaml | kubectl apply -f -
+              kubectl apply -f kubernetes-deployment.yaml
+              kubectl rollout restart deployment celebrity-detector-app
 
 workflows:
   version: 2
